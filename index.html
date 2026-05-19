@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EM Resonance Finder</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --curiosity: #E8963F;
+    --connections: #3B82C4;
+    --creating: #4AA86B;
+    --bg: #FAFAF7;
+    --text: #2C2C2C;
+    --text-light: #6B6B6B;
+    --card-bg: #FFFFFF;
+    --border: #E5E5E0;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: var(--text);
+  }
+
+  .subtitle {
+    color: var(--text-light);
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    margin-bottom: 2rem;
+  }
+  .progress-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease, background 0.4s ease;
+    width: 0%;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    margin-top: 0.4rem;
+  }
+
+  /* Category label */
+  .category-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 3px;
+    margin-bottom: 0.75rem;
+  }
+  .category-tag.curiosity { background: #FDF0E2; color: var(--curiosity); }
+  .category-tag.connections { background: #E8F0F8; color: var(--connections); }
+  .category-tag.creating { background: #E4F3E9; color: var(--creating); }
+
+  /* Question card */
+  .question-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    animation: fadeUp 0.35s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .habit-name {
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+  }
+
+  .habit-desc {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .prompt-text {
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+    color: var(--text);
+  }
+
+  /* Rating buttons */
+  .rating-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .rating-btn {
+    flex: 1;
+    min-width: 80px;
+    padding: 0.6rem 0.5rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: var(--card-bg);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+  .rating-btn:hover {
+    border-color: #bbb;
+    background: #f5f5f2;
+  }
+  .rating-btn.selected {
+    color: white;
+    border-color: transparent;
+  }
+  .rating-btn.selected.curiosity-active { background: var(--curiosity); }
+  .rating-btn.selected.connections-active { background: var(--connections); }
+  .rating-btn.selected.creating-active { background: var(--creating); }
+
+  /* Navigation */
+  .nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+  .nav-btn {
+    padding: 0.65rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .nav-btn.back {
+    background: transparent;
+    color: var(--text-light);
+    border: 1px solid var(--border);
+  }
+  .nav-btn.back:hover { background: #f0f0ed; }
+  .nav-btn.next {
+    background: var(--text);
+    color: white;
+  }
+  .nav-btn.next:hover { background: #444; }
+  .nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  /* Results */
+  .results-section { display: none; }
+  .results-section.visible { display: block; }
+
+  .results-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .results-header h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  /* Radar / visual map */
+  .radar-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2.5rem;
+  }
+  .radar-wrap svg {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  /* Category summary cards */
+  .cat-summary {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    background: var(--card-bg);
+  }
+  .cat-summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+  }
+  .cat-summary-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+  .cat-summary-score {
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  .habit-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.35rem;
+    font-size: 0.8rem;
+  }
+  .habit-bar-label {
+    width: 130px;
+    flex-shrink: 0;
+    color: var(--text-light);
+    text-align: right;
+  }
+  .habit-bar-track {
+    flex: 1;
+    height: 8px;
+    background: #eee;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .habit-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s ease;
+  }
+
+  .reflection-box {
+    background: #F5F5F0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+  }
+  .reflection-box h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+  }
+  .reflection-box p {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 0.5rem;
+  }
+
+  .restart-btn {
+    display: block;
+    margin: 2rem auto 0;
+    padding: 0.65rem 2rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text-light);
+  }
+  .restart-btn:hover { background: #f0f0ed; }
+
+  /* Intro screen */
+  .intro-section { text-align: center; padding: 3rem 1rem; }
+  .intro-section h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+  .intro-section .subtitle { margin-bottom: 1.5rem; max-width: 480px; margin-left: auto; margin-right: auto; }
+  .intro-3c {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+  .intro-3c-item {
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  .intro-3c-item.c1 { background: #FDF0E2; color: var(--curiosity); }
+  .intro-3c-item.c2 { background: #E8F0F8; color: var(--connections); }
+  .intro-3c-item.c3 { background: #E4F3E9; color: var(--creating); }
+
+  .start-btn {
+    padding: 0.8rem 2.5rem;
+    border: none;
+    border-radius: 8px;
+    background: var(--text);
+    color: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .start-btn:hover { background: #444; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- INTRO -->
+  <div id="intro" class="intro-section">
+    <h1>EM Resonance Finder</h1>
+    <p class="subtitle">Discover which habits of entrepreneurial mindset already show up in your teaching, and where new opportunities might be waiting.</p>
+    <div class="intro-3c">
+      <span class="intro-3c-item c1">Curiosity</span>
+      <span class="intro-3c-item c2">Connections</span>
+      <span class="intro-3c-item c3">Creating Value</span>
+    </div>
+    <p class="subtitle">You'll reflect on 18 habits across the 3Cs. Takes about 4 minutes.</p>
+    <button class="start-btn" onclick="startQuiz()">Begin</button>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz" style="display:none;">
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label">
+        <span id="progressText">1 of 18</span>
+        <span id="progressCat"></span>
+      </div>
+    </div>
+    <div id="questionArea"></div>
+    <div class="nav-row">
+      <button class="nav-btn back" id="backBtn" onclick="goBack()" disabled>Back</button>
+      <button class="nav-btn next" id="nextBtn" onclick="goNext()" disabled>Next</button>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results" class="results-section">
+    <div class="results-header">
+      <h1>Your EM Resonance Map</h1>
+      <p class="subtitle">Here's where entrepreneurial mindset already lives in your teaching.</p>
+    </div>
+    <div class="radar-wrap"><svg id="radarSvg" viewBox="0 0 400 400"></svg></div>
+    <div id="catSummaries"></div>
+    <div class="reflection-box">
+      <h3>Reflection Prompts</h3>
+      <p>Which habits felt most natural to you? What does that tell you about your teaching strengths?</p>
+      <p>Which habits scored lower? Are any of those areas where a small change could open up new possibilities for your students?</p>
+      <p>Pick one habit you'd like to experiment with this semester. What's the smallest thing you could try tomorrow?</p>
+    </div>
+    <button class="restart-btn" onclick="restart()">Start Over</button>
+  </div>
+
+</div>
+
+<script>
+const habits = [
+  { id:'inquisitiveness', name:'Inquisitiveness', desc:'Applying curiosity about our continuously changing world.', cat:'curiosity' },
+  { id:'contrarian', name:'Contrarian Thinking', desc:'Exploring alternative or disruptive views of current or accepted solutions.', cat:'curiosity' },
+  { id:'opportunity', name:'Opportunity Seeking', desc:'Identifying trends and unmet needs to uncover new opportunities.', cat:'curiosity' },
+  { id:'experimentation', name:'Experimentation', desc:'Constantly experimenting and iterating to test new ideas and explore what-ifs.', cat:'curiosity' },
+  { id:'ambiguity', name:'Confronting Ambiguity', desc:'Fearlessly operating with care in complex and uncertain environments.', cat:'curiosity' },
+  { id:'future', name:'Future-Minded', desc:'Considering emerging trends in people, systems, and environments.', cat:'curiosity' },
+
+  { id:'creativity', name:'Creativity', desc:'Integrating information from disparate sources to spark new ideas.', cat:'connections' },
+  { id:'systems', name:'Systems Thinking', desc:'Recognizing interdependencies in systems and identifying leverage points.', cat:'connections' },
+  { id:'synthesis', name:'Knowledge Synthesis', desc:'Combining ideas, information, and experiences to form new understanding.', cat:'connections' },
+  { id:'implications', name:'Implications Thinking', desc:'Anticipating the long-term impacts and consequences of actions.', cat:'connections' },
+  { id:'strategic', name:'Strategic Thinking', desc:'Developing long-term strategies with clear milestones.', cat:'connections' },
+  { id:'risk', name:'Risk Awareness', desc:'Proactively incorporating risk management into decision-making.', cat:'connections' },
+
+  { id:'value', name:'Value Awareness', desc:'Focusing on solutions where extraordinary value can be created.', cat:'creating' },
+  { id:'customer', name:'Customer-Centric Thinking', desc:'Framing efforts in terms of stakeholders\' actual needs.', cat:'creating' },
+  { id:'impact', name:'Impact Thinking', desc:'Seeking outcomes that produce meaningful and scalable benefits for others.', cat:'creating' },
+  { id:'social', name:'Socially Minded', desc:'Prioritizing creating meaningful and positive societal impacts.', cat:'creating' },
+  { id:'persistence', name:'Persistence', desc:'Maintaining a sense of agency and resilience to achieve goals in the face of obstacles.', cat:'creating' },
+  { id:'resourcefulness', name:'Resourcefulness', desc:'Solving problems creatively with available resources.', cat:'creating' },
+];
+
+const ratingLabels = ['Rarely', 'Sometimes', 'Often', 'Deeply embedded'];
+const ratingValues = [1, 2, 3, 4];
+
+const catColors = { curiosity: '#E8963F', connections: '#3B82C4', creating: '#4AA86B' };
+const catNames = { curiosity: 'Curiosity', connections: 'Connections', creating: 'Creating Value' };
+
+let current = 0;
+let answers = {};
+
+function startQuiz() {
+  document.getElementById('intro').style.display = 'none';
+  document.getElementById('quiz').style.display = 'block';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const h = habits[current];
+  const catClass = h.cat;
+  const color = catColors[h.cat];
+
+  document.getElementById('progressFill').style.width = ((current + 1) / habits.length * 100) + '%';
+  document.getElementById('progressFill').style.background = color;
+  document.getElementById('progressText').textContent = (current + 1) + ' of ' + habits.length;
+  document.getElementById('progressCat').textContent = catNames[h.cat];
+
+  const activeClass = h.cat === 'curiosity' ? 'curiosity-active' : h.cat === 'connections' ? 'connections-active' : 'creating-active';
+
+  let html = `<div class="question-card">
+    <span class="category-tag ${catClass}">${catNames[h.cat]}</span>
+    <div class="habit-name">${h.name}</div>
+    <div class="habit-desc">${h.desc}</div>
+    <div class="prompt-text">How often does this habit show up in your teaching?</div>
+    <div class="rating-row">`;
+
+  ratingLabels.forEach((label, i) => {
+    const sel = answers[h.id] === ratingValues[i] ? `selected ${activeClass}` : '';
+    html += `<button class="rating-btn ${sel}" onclick="selectRating(${ratingValues[i]}, this, '${activeClass}')">${label}</button>`;
+  });
+
+  html += `</div></div>`;
+  document.getElementById('questionArea').innerHTML = html;
+
+  document.getElementById('backBtn').disabled = current === 0;
+  document.getElementById('nextBtn').disabled = !answers[habits[current].id];
+  document.getElementById('nextBtn').textContent = current === habits.length - 1 ? 'See Results' : 'Next';
+}
+
+function selectRating(val, btn, activeClass) {
+  habits[current] && (answers[habits[current].id] = val);
+  document.querySelectorAll('.rating-btn').forEach(b => {
+    b.classList.remove('selected', 'curiosity-active', 'connections-active', 'creating-active');
+  });
+  btn.classList.add('selected', activeClass);
+  document.getElementById('nextBtn').disabled = false;
+}
+
+function goNext() {
+  if (current < habits.length - 1) {
+    current++;
+    renderQuestion();
+  } else {
+    showResults();
+  }
+}
+
+function goBack() {
+  if (current > 0) {
+    current--;
+    renderQuestion();
+  }
+}
+
+function showResults() {
+  document.getElementById('quiz').style.display = 'none';
+  document.getElementById('results').classList.add('visible');
+  drawRadar();
+  drawSummaries();
+}
+
+function drawRadar() {
+  const svg = document.getElementById('radarSvg');
+  const cx = 200, cy = 200, maxR = 150;
+  const n = habits.length;
+  const angleStep = (2 * Math.PI) / n;
+
+  let gridHtml = '';
+  // concentric rings
+  [0.25, 0.5, 0.75, 1].forEach(frac => {
+    const r = maxR * frac;
+    gridHtml += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e0e0dc" stroke-width="0.75"/>`;
+  });
+
+  // spokes and labels
+  habits.forEach((h, i) => {
+    const angle = -Math.PI / 2 + i * angleStep;
+    const x2 = cx + maxR * Math.cos(angle);
+    const y2 = cy + maxR * Math.sin(angle);
+    gridHtml += `<line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="#e0e0dc" stroke-width="0.5"/>`;
+
+    const lx = cx + (maxR + 18) * Math.cos(angle);
+    const ly = cy + (maxR + 18) * Math.sin(angle);
+    const anchor = Math.abs(Math.cos(angle)) < 0.1 ? 'middle' : Math.cos(angle) > 0 ? 'start' : 'end';
+    gridHtml += `<text x="${lx}" y="${ly}" text-anchor="${anchor}" dominant-baseline="central"
+      font-family="DM Sans, sans-serif" font-size="7.5" fill="#999">${h.name}</text>`;
+  });
+
+  // data polygon per category
+  const cats = ['curiosity', 'connections', 'creating'];
+  // single combined polygon
+  let points = [];
+  habits.forEach((h, i) => {
+    const val = (answers[h.id] || 0) / 4;
+    const angle = -Math.PI / 2 + i * angleStep;
+    const x = cx + maxR * val * Math.cos(angle);
+    const y = cy + maxR * val * Math.sin(angle);
+    points.push(`${x},${y}`);
+  });
+
+  // colored segments per category
+  let catStart = 0;
+  cats.forEach(cat => {
+    const catHabits = habits.filter(h => h.cat === cat);
+    const startIdx = habits.indexOf(catHabits[0]);
+    const endIdx = habits.indexOf(catHabits[catHabits.length - 1]);
+
+    let segPoints = [`${cx},${cy}`];
+    for (let i = startIdx; i <= endIdx; i++) {
+      const val = (answers[habits[i].id] || 0) / 4;
+      const angle = -Math.PI / 2 + i * angleStep;
+      segPoints.push(`${cx + maxR * val * Math.cos(angle)},${cy + maxR * val * Math.sin(angle)}`);
+    }
+    segPoints.push(`${cx},${cy}`);
+    gridHtml += `<polygon points="${segPoints.join(' ')}" fill="${catColors[cat]}22" stroke="${catColors[cat]}" stroke-width="2"/>`;
+  });
+
+  // dots
+  habits.forEach((h, i) => {
+    const val = (answers[h.id] || 0) / 4;
+    const angle = -Math.PI / 2 + i * angleStep;
+    const x = cx + maxR * val * Math.cos(angle);
+    const y = cy + maxR * val * Math.sin(angle);
+    gridHtml += `<circle cx="${x}" cy="${y}" r="4" fill="${catColors[h.cat]}" stroke="white" stroke-width="1.5"/>`;
+  });
+
+  svg.innerHTML = gridHtml;
+}
+
+function drawSummaries() {
+  const container = document.getElementById('catSummaries');
+  const cats = [
+    { key: 'curiosity', label: 'Curiosity' },
+    { key: 'connections', label: 'Connections' },
+    { key: 'creating', label: 'Creating Value' },
+  ];
+
+  let html = '';
+  cats.forEach(cat => {
+    const catHabits = habits.filter(h => h.cat === cat.key);
+    const scores = catHabits.map(h => answers[h.id] || 0);
+    const avg = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
+    const color = catColors[cat.key];
+
+    html += `<div class="cat-summary">
+      <div class="cat-summary-header">
+        <span class="cat-summary-title" style="color:${color}">${cat.label}</span>
+        <span class="cat-summary-score" style="color:${color}">${avg} / 4</span>
+      </div>`;
+
+    catHabits.forEach(h => {
+      const val = answers[h.id] || 0;
+      const pct = (val / 4 * 100);
+      html += `<div class="habit-bar-row">
+        <span class="habit-bar-label">${h.name}</span>
+        <div class="habit-bar-track"><div class="habit-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function restart() {
+  current = 0;
+  answers = {};
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('intro').style.display = 'block';
+}
+</script>
+
+</body>
+</html>
